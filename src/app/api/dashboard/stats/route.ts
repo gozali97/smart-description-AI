@@ -22,17 +22,19 @@ export async function GET() {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
+    const profileId = profile.id;
+
     // Get total products
     const { count: totalProducts } = await supabase
       .from("products")
       .select("*", { count: "exact", head: true })
-      .eq("user_id", profile.id);
+      .eq("user_id", profileId);
 
     // Get total generations
     const { count: totalGenerations } = await supabase
       .from("generations")
       .select("*, products!inner(user_id)", { count: "exact", head: true })
-      .eq("products.user_id", profile.id);
+      .eq("products.user_id", profileId);
 
     // Get this month's products
     const startOfMonth = new Date();
@@ -42,14 +44,14 @@ export async function GET() {
     const { count: thisMonthProducts } = await supabase
       .from("products")
       .select("*", { count: "exact", head: true })
-      .eq("user_id", profile.id)
+      .eq("user_id", profileId)
       .gte("created_at", startOfMonth.toISOString());
 
     // Get recent products
     const { data: recentProducts } = await supabase
       .from("products")
       .select("*")
-      .eq("user_id", profile.id)
+      .eq("user_id", profileId)
       .order("created_at", { ascending: false })
       .limit(6);
 
