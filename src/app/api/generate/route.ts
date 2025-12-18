@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { generateWithMistral } from "@/lib/mistral";
 import { generateWithGemini } from "@/lib/gemini";
 import { createServerSupabaseClient } from "@/lib/supabase";
+import type { Profile, Product } from "@/types/database";
 
 export interface GenerateRequest {
   imageUrl: string;
@@ -52,11 +53,13 @@ export async function POST(req: NextRequest) {
 
     // Get user profile with AI model preference
     const supabase = createServerSupabaseClient();
-    const { data: profile } = await supabase
+    const profileResult = await supabase
       .from("profiles")
       .select("id, ai_model")
       .eq("clerk_id", userId)
       .single();
+
+    const profile = profileResult.data as Pick<Profile, "id" | "ai_model"> | null;
 
     if (!profile) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -140,7 +143,7 @@ Berikan response dalam format JSON seperti ini (tanpa markdown code block):
     }
 
     // Save product to database
-    const { data: product, error: productError } = await supabase
+    const productResult = await supabase
       .from("products")
       .insert({
         user_id: profile.id,
@@ -152,8 +155,10 @@ Berikan response dalam format JSON seperti ini (tanpa markdown code block):
       .select()
       .single();
 
-    if (productError) {
-      console.error("Error saving product:", productError);
+    const product = productResult.data as Product | null;
+
+    if (productResult.error || !product) {
+      console.error("Error saving product:", productResult.error);
       return NextResponse.json(
         { error: "Failed to save product" },
         { status: 500 }
